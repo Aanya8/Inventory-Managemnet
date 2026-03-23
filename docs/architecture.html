@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Factory Inventory Management — Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+
+    header {
+      background: #0f172a;
+      color: #f1f5f9;
+      padding: 2rem 3rem;
+      border-bottom: 3px solid #2563eb;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p { color: #94a3b8; font-size: 0.9rem; margin-top: 0.3rem; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    section { margin-bottom: 3rem; }
+
+    /* ── Tech Stack ── */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .stack-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+    }
+    .stack-card .layer {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #2563eb;
+      margin-bottom: 0.5rem;
+    }
+    .stack-card .name { font-size: 1rem; font-weight: 700; color: #0f172a; }
+    .stack-card .detail { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
+    .stack-card ul { margin-top: 0.6rem; padding-left: 1rem; }
+    .stack-card ul li { font-size: 0.82rem; color: #475569; margin-bottom: 0.2rem; }
+
+    /* ── Architecture Diagram ── */
+    .arch-diagram {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 2rem;
+      overflow-x: auto;
+    }
+
+    .arch-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 0;
+    }
+
+    .arch-layer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .arch-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 0.6rem;
+    }
+
+    .arch-box {
+      width: 100%;
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      border: 1.5px solid transparent;
+    }
+
+    .arch-box .title { font-weight: 700; font-size: 0.9rem; }
+    .arch-box .sub { font-size: 0.75rem; margin-top: 0.25rem; opacity: 0.85; }
+    .arch-box .tags { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.3rem; justify-content: center; }
+    .arch-box .tag {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .box-blue   { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+    .box-green  { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+    .box-purple { background: #faf5ff; border-color: #c4b5fd; color: #7c3aed; }
+    .box-orange { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+    .box-slate  { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
+
+    .tag-blue   { background: #dbeafe; color: #1d4ed8; }
+    .tag-green  { background: #dcfce7; color: #15803d; }
+    .tag-purple { background: #ede9fe; color: #6d28d9; }
+    .tag-orange { background: #ffedd5; color: #c2410c; }
+    .tag-slate  { background: #e2e8f0; color: #475569; }
+
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.5rem;
+      padding-top: 1.8rem; /* align with box content */
+      color: #94a3b8;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Data Flow ── */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .flow-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .flow-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .flow-line {
+      width: 2px;
+      flex: 1;
+      min-height: 24px;
+      background: #e2e8f0;
+      margin: 4px 0;
+    }
+    .flow-content {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.8rem 1.1rem;
+      flex: 1;
+      margin-bottom: 0.6rem;
+    }
+    .flow-content .fc-title { font-weight: 700; font-size: 0.88rem; color: #0f172a; }
+    .flow-content .fc-detail { font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; }
+    .flow-content code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.78rem;
+      background: #f1f5f9;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      color: #334155;
+    }
+
+    /* ── File Map ── */
+    .file-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+    }
+    @media (max-width: 700px) { .file-grid { grid-template-columns: 1fr; } }
+
+    .file-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.1rem 1.3rem;
+    }
+    .file-card .fc-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-weight: 700; font-size: 0.88rem; color: #0f172a;
+      margin-bottom: 0.7rem;
+    }
+    .file-card .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .dot-blue   { background: #3b82f6; }
+    .dot-green  { background: #22c55e; }
+    .dot-purple { background: #a855f7; }
+    .dot-orange { background: #f97316; }
+
+    .file-card table { width: 100%; border-collapse: collapse; }
+    .file-card td {
+      font-size: 0.8rem;
+      padding: 0.25rem 0;
+      vertical-align: top;
+    }
+    .file-card td:first-child {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #2563eb;
+      white-space: nowrap;
+      padding-right: 0.8rem;
+      width: 45%;
+    }
+    .file-card td:last-child { color: #64748b; }
+
+    /* ── API Endpoints ── */
+    .endpoint-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .endpoint-table th {
+      background: #f8fafc;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      padding: 0.6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .endpoint-table td {
+      padding: 0.55rem 1rem;
+      font-size: 0.82rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+    }
+    .endpoint-table tr:last-child td { border-bottom: none; }
+    .method {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .endpoint-table td:nth-child(2) {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #334155;
+    }
+    .endpoint-table td:nth-child(3) { color: #64748b; }
+    .endpoint-table td:nth-child(4) {
+      font-size: 0.75rem;
+      color: #2563eb;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Filter System ── */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .filter-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+    }
+    .filter-card .fname { font-weight: 700; font-size: 0.9rem; color: #0f172a; margin-bottom: 0.4rem; }
+    .filter-card .fparam {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: #2563eb;
+      margin-bottom: 0.5rem;
+    }
+    .filter-card .fvalues { font-size: 0.78rem; color: #64748b; }
+    .filter-card .fapplies {
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+    .filter-card .fapplies span {
+      display: inline-block;
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      margin: 0.1rem 0.1rem 0 0;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Factory Inventory Management System</h1>
+  <p>System Architecture Overview &mdash; Full-stack Vue 3 + FastAPI demo application</p>
+</header>
+
+<div class="container">
+
+  <!-- ── Tech Stack ── -->
+  <section>
+    <h2>Tech Stack</h2>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="layer">Frontend</div>
+        <div class="name">Vue 3</div>
+        <div class="detail">Composition API &bull; Vite 5 &bull; Port 3000</div>
+        <ul>
+          <li>Vue Router 4 (6 routes)</li>
+          <li>Axios (HTTP client)</li>
+          <li>Custom SVG charts</li>
+          <li>i18n: English + Japanese</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="layer">Backend</div>
+        <div class="name">Python FastAPI</div>
+        <div class="detail">Uvicorn ASGI &bull; Pydantic v2 &bull; Port 8001</div>
+        <ul>
+          <li>Python 3.11+</li>
+          <li>In-memory filtering (no ORM)</li>
+          <li>CORS enabled</li>
+          <li>Auto-generated /docs</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="layer">Data Layer</div>
+        <div class="name">JSON Mock Data</div>
+        <div class="detail">Loaded at startup &bull; In-memory only</div>
+        <ul>
+          <li>~50 inventory SKUs</li>
+          <li>1,500+ orders (full year)</li>
+          <li>9 demand forecasts</li>
+          <li>Financial transactions</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="layer">Testing &amp; Tooling</div>
+        <div class="name">pytest + Vite</div>
+        <div class="detail">FastAPI TestClient &bull; uv package manager</div>
+        <ul>
+          <li>Backend: pytest + httpx</li>
+          <li>Frontend: Vite HMR</li>
+          <li>uv for Python deps</li>
+          <li>npm for JS deps</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── System Architecture Diagram ── -->
+  <section>
+    <h2>System Architecture</h2>
+    <div class="arch-diagram">
+      <div class="arch-row">
+
+        <div class="arch-layer">
+          <div class="arch-label">Browser</div>
+          <div class="arch-box box-blue">
+            <div class="title">Vue 3 Frontend</div>
+            <div class="sub">localhost:3000</div>
+            <div class="tags">
+              <span class="tag tag-blue">Views</span>
+              <span class="tag tag-blue">Components</span>
+              <span class="tag tag-blue">Composables</span>
+              <span class="tag tag-blue">api.js</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8594;</div>
+
+        <div class="arch-layer">
+          <div class="arch-label">HTTP / Axios</div>
+          <div class="arch-box box-slate">
+            <div class="title">REST API</div>
+            <div class="sub">Query params for filters</div>
+            <div class="tags">
+              <span class="tag tag-slate">GET /api/*</span>
+              <span class="tag tag-slate">JSON</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8594;</div>
+
+        <div class="arch-layer">
+          <div class="arch-label">API Server</div>
+          <div class="arch-box box-green">
+            <div class="title">FastAPI Backend</div>
+            <div class="sub">localhost:8001</div>
+            <div class="tags">
+              <span class="tag tag-green">main.py</span>
+              <span class="tag tag-green">Pydantic</span>
+              <span class="tag tag-green">Filtering logic</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8594;</div>
+
+        <div class="arch-layer">
+          <div class="arch-label">Data</div>
+          <div class="arch-box box-orange">
+            <div class="title">JSON Files</div>
+            <div class="sub">server/data/</div>
+            <div class="tags">
+              <span class="tag tag-orange">inventory.json</span>
+              <span class="tag tag-orange">orders.json</span>
+              <span class="tag tag-orange">spending.json</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Data Flow ── -->
+  <section>
+    <h2>Data Flow — Filter Change to Render</h2>
+    <div class="flow-steps">
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">1</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">User changes a filter dropdown</div>
+          <div class="fc-detail"><code>FilterBar.vue</code> updates a ref in <code>useFilters.js</code> composable (e.g. <code>selectedLocation.value = 'Tokyo'</code>). The composable is a singleton &mdash; all views share the same state.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">2</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">View component reacts</div>
+          <div class="fc-detail">The active view (e.g. <code>Inventory.vue</code>) watches the filter composable. When a change is detected, it calls <code>getCurrentFilters()</code> and triggers a data reload.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">3</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">API call dispatched via api.js</div>
+          <div class="fc-detail">Centralized <code>api.js</code> builds a <code>URLSearchParams</code> object, skipping <code>'all'</code> values. Example: <code>GET /api/orders?warehouse=Tokyo&amp;status=delivered&amp;month=2025-09</code></div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">4</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">Backend filters in-memory data</div>
+          <div class="fc-detail"><code>main.py</code> receives query params as <code>Optional[str]</code>. <code>apply_filters()</code> chains warehouse → category → status filters. <code>filter_by_month()</code> handles both <code>YYYY-MM</code> and <code>Q#-YYYY</code> quarter formats.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">5</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">Pydantic validates &amp; serializes response</div>
+          <div class="fc-detail">FastAPI validates the filtered list against the Pydantic model (e.g. <code>List[Order]</code>) and returns a JSON array.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-connector">
+          <div class="flow-num">6</div>
+        </div>
+        <div class="flow-content">
+          <div class="fc-title">Vue re-renders with new data</div>
+          <div class="fc-detail">Axios resolves the promise. The view updates its reactive <code>items</code> ref. Computed properties (e.g. aggregates, chart data) recalculate automatically. Template re-renders.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Filter System ── -->
+  <section>
+    <h2>Filter System</h2>
+    <div class="filter-grid">
+      <div class="filter-card">
+        <div class="fname">Time Period</div>
+        <div class="fparam">?month=YYYY-MM</div>
+        <div class="fvalues">All months in 2025, Q1–Q4 quarters</div>
+        <div class="fapplies">Applies to: <span>Dashboard</span><span>Orders</span><span>Reports</span></div>
+      </div>
+      <div class="filter-card">
+        <div class="fname">Warehouse</div>
+        <div class="fparam">?warehouse=San Francisco</div>
+        <div class="fvalues">San Francisco, London, Tokyo</div>
+        <div class="fapplies">Applies to: <span>Dashboard</span><span>Orders</span><span>Inventory</span></div>
+      </div>
+      <div class="filter-card">
+        <div class="fname">Category</div>
+        <div class="fparam">?category=sensors</div>
+        <div class="fvalues">Circuit Boards, Sensors, Actuators, Controllers, Power Supplies</div>
+        <div class="fapplies">Applies to: <span>Dashboard</span><span>Orders</span><span>Inventory</span></div>
+      </div>
+      <div class="filter-card">
+        <div class="fname">Order Status</div>
+        <div class="fparam">?status=delivered</div>
+        <div class="fvalues">Delivered, Shipped, Processing, Backordered</div>
+        <div class="fapplies">Applies to: <span>Dashboard</span><span>Orders</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── API Endpoints ── -->
+  <section>
+    <h2>API Endpoints</h2>
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Description</th>
+          <th>Filters Supported</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/inventory</td>
+          <td>All inventory SKUs with stock levels</td>
+          <td>warehouse, category</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/orders</td>
+          <td>Order list with status and values</td>
+          <td>warehouse, category, status, month</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/dashboard/summary</td>
+          <td>KPI summary card data</td>
+          <td>warehouse, category, status, month</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/demand</td>
+          <td>Demand forecasts by SKU</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/backlog</td>
+          <td>Backlog items with purchase order flags</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/spending/summary</td>
+          <td>Total spend with YoY % changes</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/spending/monthly</td>
+          <td>12-month spending breakdown</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/spending/categories</td>
+          <td>Spend by category</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/spending/transactions</td>
+          <td>Recent financial transactions</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/reports/quarterly</td>
+          <td>Q1–Q4 2025 quarterly metrics</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><span class="method">GET</span></td>
+          <td>/api/reports/monthly-trends</td>
+          <td>Month-over-month trend data</td>
+          <td>&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Key Files ── -->
+  <section>
+    <h2>Key File Locations</h2>
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="fc-header"><div class="dot dot-blue"></div>Frontend — Views</div>
+        <table>
+          <tr><td>views/Dashboard.vue</td><td>KPI cards, charts, metrics</td></tr>
+          <tr><td>views/Inventory.vue</td><td>Stock levels, SKU table</td></tr>
+          <tr><td>views/Orders.vue</td><td>Order list &amp; detail</td></tr>
+          <tr><td>views/Demand.vue</td><td>Demand forecasting</td></tr>
+          <tr><td>views/Spending.vue</td><td>Financial reports</td></tr>
+          <tr><td>views/Reports.vue</td><td>Quarterly/monthly trends</td></tr>
+        </table>
+      </div>
+      <div class="file-card">
+        <div class="fc-header"><div class="dot dot-blue"></div>Frontend — Core</div>
+        <table>
+          <tr><td>src/api.js</td><td>Centralized Axios API client</td></tr>
+          <tr><td>src/App.vue</td><td>Root layout &amp; global styles</td></tr>
+          <tr><td>src/main.js</td><td>App entry, router setup</td></tr>
+          <tr><td>composables/useFilters.js</td><td>Global filter state (singleton)</td></tr>
+          <tr><td>composables/useI18n.js</td><td>EN/JA translations &amp; currency</td></tr>
+          <tr><td>composables/useAuth.js</td><td>Mock user &amp; tasks</td></tr>
+        </table>
+      </div>
+      <div class="file-card">
+        <div class="fc-header"><div class="dot dot-green"></div>Backend</div>
+        <table>
+          <tr><td>server/main.py</td><td>FastAPI app &amp; all endpoints</td></tr>
+          <tr><td>server/mock_data.py</td><td>JSON loader, called at startup</td></tr>
+          <tr><td>server/generate_data.py</td><td>One-time data generation script</td></tr>
+        </table>
+      </div>
+      <div class="file-card">
+        <div class="fc-header"><div class="dot dot-orange"></div>Data Files</div>
+        <table>
+          <tr><td>data/inventory.json</td><td>~50 SKUs across 3 warehouses</td></tr>
+          <tr><td>data/orders.json</td><td>1,500+ orders, full 2025</td></tr>
+          <tr><td>data/demand_forecasts.json</td><td>9 item demand forecasts</td></tr>
+          <tr><td>data/backlog_items.json</td><td>Active backlog</td></tr>
+          <tr><td>data/spending.json</td><td>Financial summary data</td></tr>
+          <tr><td>data/transactions.json</td><td>Recent transactions</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Factory Inventory Management System &mdash; Architecture Reference
+</footer>
+
+</body>
+</html>
